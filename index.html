@@ -289,13 +289,18 @@ async function loadDiscover(){
 let searchTimer;
 async function doSearch(q){
   if(!q.trim()){S.results=[];S.loading=false;render();return}
-  S.loading=true;render();
+  S.loading=true;
+  const url=u("/search/multi","&query="+encodeURIComponent(q));
+  console.log("Searching:",url);
   try{
-    const r=await fetch(u("/search/multi","&query="+encodeURIComponent(q)));
-    if(!r.ok) throw 0;
+    const r=await fetch(url);
+    console.log("TMDB response status:",r.status);
+    if(!r.ok) throw new Error("HTTP "+r.status);
     const d=await r.json();
+    console.log("TMDB results:",d.results?.length);
     S.results=(d.results||[]).filter(r=>r.media_type!=="person").slice(0,24);
-  }catch{
+  }catch(err){
+    console.error("Search failed, using fallback:",err);
     const lw=q.toLowerCase();
     const all=[...(FALLBACK.trending||[]),...(FALLBACK.now_playing||[]),...(FALLBACK.on_the_air||[]),...(FALLBACK.upcoming||[])];
     const seen=new Set();
@@ -343,15 +348,19 @@ function render(){
   // Discover
   if(S.tab==="discover"){
     const sw=el("div",{className:"search-w"});
-    const inp=el("input",{className:"search-i",placeholder:"Search any movie or TV show...",value:S.query,
+    const wasFocused = document.activeElement && document.activeElement.classList.contains("search-i");
+    const inp=el("input",{className:"search-i",placeholder:"Search any movie or TV show...",
       onInput:function(e){S.query=e.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>doSearch(S.query),400)},
-      onFocus:function(){this.style.borderColor="rgba(123,47,247,0.4)"},
-      onBlur:function(){this.style.borderColor="rgba(255,255,255,0.07)"}
+      onFocus:function(){this.style.borderColor="rgba(123,47,247,0.6)"},
+      onBlur:function(){this.style.borderColor="rgba(255,255,255,0.18)"}
     });
+    inp.value = S.query;
     sw.appendChild(inp);
     sw.appendChild(el("span",{className:"si"},"⌕"));
     if(S.loading) sw.appendChild(el("span",{className:"sl",innerHTML:'<span style="display:inline-block;animation:pulse 1.2s infinite">●</span> searching...'}));
     app.appendChild(sw);
+    // Restore focus after DOM is built
+    if(wasFocused || S.query) { requestAnimationFrame(()=>{ inp.focus(); inp.setSelectionRange(S.query.length, S.query.length); }); }
 
     if(S.query){
       app.appendChild(el("h2",{style:{fontFamily:"'Playfair Display',serif",fontSize:"18px",fontWeight:600,margin:"0 0 16px",color:"rgba(255,255,255,0.6)"}},'Results for "'+S.query+'"'));
@@ -398,10 +407,6 @@ function render(){
   }
 
   app.appendChild(el("div",{className:"footer"},"Data from TMDB · This product uses the TMDB API but is not endorsed or certified by TMDB."));
-
-  // Restore search input value & cursor
-  const searchInput = app.querySelector(".search-i");
-  if(searchInput && S.query){searchInput.value=S.query; searchInput.setSelectionRange(S.query.length,S.query.length)}
 }
 
 function renderModal(){
