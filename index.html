@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScreenLog — Track · Rate · Remember</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #08081a; color: #fff; font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    input::placeholder { color: rgba(255,255,255,0.22); }
+    ::-webkit-scrollbar { height: 4px; width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const TMDB_KEY = “930ecf8f18690f0651fa7d4c77ae031a”;
+const TMDB_IMG = “https://image.tmdb.org/t/p/w500”;
+const BASE = “https://api.themoviedb.org/3”;
+const tmdb = (path, extra = “”) => `${BASE}${path}?api_key=${TMDB_KEY}${extra}`;
+const FALLBACK = {“trending”:[{“id”:1171145,“title”:“Crime 101”,“name”:“Crime 101”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/tVvpFIoteRHNnoZMhdnwIVwJpCA.jpg”,“vote_average”:6.9},{“id”:83533,“title”:“Avatar: Fire and Ash”,“name”:“Avatar: Fire and Ash”,“media_type”:“movie”,“release_date”:“2025-12-17”,“first_air_date”:””,“poster_path”:”/bRBeSHfGHwkEpImlhxPmOcUsaeg.jpg”,“vote_average”:7.3},{“id”:1226863,“title”:“The Super Mario Galaxy Movie”,“name”:“The Super Mario Galaxy Movie”,“media_type”:“movie”,“release_date”:“2026-04-01”,“first_air_date”:””,“poster_path”:”/eJGWx219ZcEMVQJhAgMiqo8tYY.jpg”,“vote_average”:6.9},{“id”:1159559,“title”:“Scream 7”,“name”:“Scream 7”,“media_type”:“movie”,“release_date”:“2026-02-25”,“first_air_date”:””,“poster_path”:”/jjyuk0edLiW8vOSnlfwWCCLpbh5.jpg”,“vote_average”:5.9},{“id”:687163,“title”:“Project Hail Mary”,“name”:“Project Hail Mary”,“media_type”:“movie”,“release_date”:“2026-03-15”,“first_air_date”:””,“poster_path”:”/yihdXomYb5kTeSivtFndMy5iDmf.jpg”,“vote_average”:8.2},{“id”:195670,“title”:“XO, Kitty”,“name”:“XO, Kitty”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2023-05-18”,“poster_path”:”/hxvTdKAwv27PUfpXOQp6AwWr6V.jpg”,“vote_average”:8.1},{“id”:1268127,“title”:“Humint”,“name”:“Humint”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/82bX2GK4PhaJQtfkTnfmd2P7erG.jpg”,“vote_average”:7.5},{“id”:213703,“title”:“Agent from Above”,“name”:“Agent from Above”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2026-04-02”,“poster_path”:”/ShizRVGvyFCmGqv7tFA0hxzQ8E.jpg”,“vote_average”:7.8},{“id”:202555,“title”:“Daredevil: Born Again”,“name”:“Daredevil: Born Again”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2025-03-04”,“poster_path”:”/xDUoAsU8lQHOOoRkFiBuarmACDN.jpg”,“vote_average”:8.0},{“id”:1325734,“title”:“The Drama”,“name”:“The Drama”,“media_type”:“movie”,“release_date”:“2026-03-26”,“first_air_date”:””,“poster_path”:”/ikcNOWB6Qo1ER1H1BJL6Vf0W22s.jpg”,“vote_average”:6.2},{“id”:95557,“title”:“Invincible”,“name”:“Invincible”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2021-03-25”,“poster_path”:”/4tblBrslcKSifMVZ3TmtT2ukMor.jpg”,“vote_average”:8.6},{“id”:94404,“title”:“Dorohedoro”,“name”:“Dorohedoro”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2020-01-13”,“poster_path”:”/zSMmRTopPIRr6913KX8pyiV6zsK.jpg”,“vote_average”:8.3},{“id”:86031,“title”:“Dr. STONE”,“name”:“Dr. STONE”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2019-07-05”,“poster_path”:”/rocRrglJfYkglKilmFaStvo5EvS.jpg”,“vote_average”:8.5},{“id”:1635276,“title”:“Eat Pray Bark”,“name”:“Eat Pray Bark”,“media_type”:“movie”,“release_date”:“2026-04-01”,“first_air_date”:””,“poster_path”:”/ryCpIJcmV14DSijeqp1rofjFeAU.jpg”,“vote_average”:5.7},{“id”:72517,“title”:“Classroom of the Elite”,“name”:“Classroom of the Elite”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2017-07-12”,“poster_path”:”/yuHanbUUIv2UWRxxQFt9n8jtmOJ.jpg”,“vote_average”:8.4}],“now_playing”:[{“id”:1523145,“title”:“Your Heart Will Be Broken”,“name”:“Your Heart Will Be Broken”,“media_type”:“movie”,“release_date”:“2026-03-26”,“first_air_date”:””,“poster_path”:”/7wIBfBl2gejt6xHxNSK0reVIm7E.jpg”,“vote_average”:6.8},{“id”:1115544,“title”:“Mike & Nick & Nick & Alice”,“name”:“Mike & Nick & Nick & Alice”,“media_type”:“movie”,“release_date”:“2026-03-14”,“first_air_date”:””,“poster_path”:”/7F0jc75HrSkLVcvOXR2FXAIwuEv.jpg”,“vote_average”:6.8},{“id”:1290821,“title”:“Shelter”,“name”:“Shelter”,“media_type”:“movie”,“release_date”:“2026-01-28”,“first_air_date”:””,“poster_path”:”/buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg”,“vote_average”:6.7},{“id”:1297842,“title”:“GOAT”,“name”:“GOAT”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/wfuqMlaExcoYiUEvKfVpUTt1v4u.jpg”,“vote_average”:7.8},{“id”:1171145,“title”:“Crime 101”,“name”:“Crime 101”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/tVvpFIoteRHNnoZMhdnwIVwJpCA.jpg”,“vote_average”:7.0},{“id”:1084187,“title”:“Pretty Lethal”,“name”:“Pretty Lethal”,“media_type”:“movie”,“release_date”:“2026-03-13”,“first_air_date”:””,“poster_path”:”/znTPnXCK3lEQJgqXCvP7e5FUz6f.jpg”,“vote_average”:6.8},{“id”:687163,“title”:“Project Hail Mary”,“name”:“Project Hail Mary”,“media_type”:“movie”,“release_date”:“2026-03-15”,“first_air_date”:””,“poster_path”:”/yihdXomYb5kTeSivtFndMy5iDmf.jpg”,“vote_average”:8.2},{“id”:1159559,“title”:“Scream 7”,“name”:“Scream 7”,“media_type”:“movie”,“release_date”:“2026-02-25”,“first_air_date”:””,“poster_path”:”/jjyuk0edLiW8vOSnlfwWCCLpbh5.jpg”,“vote_average”:5.9},{“id”:1327819,“title”:“Hoppers”,“name”:“Hoppers”,“media_type”:“movie”,“release_date”:“2026-03-04”,“first_air_date”:””,“poster_path”:”/xjtWQ2CL1mpmMNwuU5HeS4Iuwuu.jpg”,“vote_average”:7.6},{“id”:1226863,“title”:“The Super Mario Galaxy Movie”,“name”:“The Super Mario Galaxy Movie”,“media_type”:“movie”,“release_date”:“2026-04-01”,“first_air_date”:””,“poster_path”:”/eJGWx219ZcEMVQJhAgMiqo8tYY.jpg”,“vote_average”:6.9},{“id”:840464,“title”:“Greenland 2: Migration”,“name”:“Greenland 2: Migration”,“media_type”:“movie”,“release_date”:“2026-01-07”,“first_air_date”:””,“poster_path”:”/z2tqCJLsw6uEJ8nJV8BsQXGa3dr.jpg”,“vote_average”:6.5},{“id”:875828,“title”:“Peaky Blinders: The Immortal Man”,“name”:“Peaky Blinders: The Immortal Man”,“media_type”:“movie”,“release_date”:“2026-03-05”,“first_air_date”:””,“poster_path”:”/gRMalasZEzsZi4w2VFuYusfSfqf.jpg”,“vote_average”:7.3},{“id”:1316092,“title”:”"Wuthering Heights"”,“name”:”"Wuthering Heights"”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/lGlJ2cTDwMacj5nuANd38UjVGNQ.jpg”,“vote_average”:6.5},{“id”:999136,“title”:“Do Not Enter”,“name”:“Do Not Enter”,“media_type”:“movie”,“release_date”:“2026-03-19”,“first_air_date”:””,“poster_path”:”/stM9N7eJmHKLmFR59JG4tLdN7Wk.jpg”,“vote_average”:5.3},{“id”:1193501,“title”:“Whistle”,“name”:“Whistle”,“media_type”:“movie”,“release_date”:“2026-01-20”,“first_air_date”:””,“poster_path”:”/eGxPyseSnEZBMJaopGfRUO9HSYx.jpg”,“vote_average”:6.0}],“on_the_air”:[{“id”:2734,“title”:“Law & Order: Special Victims Unit”,“name”:“Law & Order: Special Victims Unit”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“1999-09-20”,“poster_path”:”/iofokHZoUB4Qhik4PflvJl8TT6a.jpg”,“vote_average”:7.9},{“id”:1416,“title”:“Grey’s Anatomy”,“name”:“Grey’s Anatomy”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2005-03-27”,“poster_path”:”/hjJkrLXhWvGHpLeLBDFznpBTY1S.jpg”,“vote_average”:8.2},{“id”:549,“title”:“Law & Order”,“name”:“Law & Order”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“1990-09-13”,“poster_path”:”/haJ9eHytVO3H3JooMJG1DiWwDNm.jpg”,“vote_average”:7.3},{“id”:4614,“title”:“NCIS”,“name”:“NCIS”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2003-09-23”,“poster_path”:”/mBcu8d6x6zB1el3MPNl7cZQEQ31.jpg”,“vote_average”:7.6},{“id”:79744,“title”:“The Rookie”,“name”:“The Rookie”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2018-10-16”,“poster_path”:”/70kTz0OmjjZe7zHvIDrq2iKW7PJ.jpg”,“vote_average”:8.5},{“id”:1871,“title”:“EastEnders”,“name”:“EastEnders”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“1985-02-19”,“poster_path”:”/z4jgyI5TpoRZiJTNchkVkMrGQyz.jpg”,“vote_average”:4.2},{“id”:22980,“title”:“Watch What Happens Live with Andy Cohen”,“name”:“Watch What Happens Live with Andy Cohen”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2009-07-16”,“poster_path”:”/onSD9UXfJwrMXWhq7UY7hGF2S1h.jpg”,“vote_average”:5.1},{“id”:33238,“title”:“Running Man”,“name”:“Running Man”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2010-07-11”,“poster_path”:”/2Wmmu1MkqxJ48J7aySET9EKEjXz.jpg”,“vote_average”:8.2},{“id”:2661,“title”:“Kamen Rider”,“name”:“Kamen Rider”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“1971-04-03”,“poster_path”:”/2DIBDFHiKQawz4WPsYekl9DHwyA.jpg”,“vote_average”:6.4},{“id”:74561,“title”:“Who’s the Murderer”,“name”:“Who’s the Murderer”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2016-03-27”,“poster_path”:”/dmWr4vJgvGMH8m60fuTh0wzYGde.jpg”,“vote_average”:8.4},{“id”:65733,“title”:“Doraemon”,“name”:“Doraemon”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2005-04-22”,“poster_path”:”/9ZN1P32SHviL3SV51qLivxycvcx.jpg”,“vote_average”:8.1},{“id”:95557,“title”:“Invincible”,“name”:“Invincible”,“media_type”:“tv”,“release_date”:””,“first_air_date”:“2021-03-25”,“poster_path”:”/4tblBrslcKSifMVZ3TmtT2ukMor.jpg”,“vote_average”:8.6}],“upcoming”:[{“id”:1290821,“title”:“Shelter”,“name”:“Shelter”,“media_type”:“movie”,“release_date”:“2026-01-28”,“first_air_date”:””,“poster_path”:”/buPFnHZ3xQy6vZEHxbHgL1Pc6CR.jpg”,“vote_average”:6.7},{“id”:1297842,“title”:“GOAT”,“name”:“GOAT”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/wfuqMlaExcoYiUEvKfVpUTt1v4u.jpg”,“vote_average”:7.7},{“id”:1171145,“title”:“Crime 101”,“name”:“Crime 101”,“media_type”:“movie”,“release_date”:“2026-02-11”,“first_air_date”:””,“poster_path”:”/tVvpFIoteRHNnoZMhdnwIVwJpCA.jpg”,“vote_average”:7.0},{“id”:687163,“title”:“Project Hail Mary”,“name”:“Project Hail Mary”,“media_type”:“movie”,“release_date”:“2026-03-15”,“first_air_date”:””,“poster_path”:”/yihdXomYb5kTeSivtFndMy5iDmf.jpg”,“vote_average”:8.2},{“id”:1226863,“title”:“The Super Mario Galaxy Movie”,“name”:“The Super Mario Galaxy Movie”,“media_type”:“movie”,“release_date”:“2026-04-01”,“first_air_date”:””,“poster_path”:”/eJGWx219ZcEMVQJhAgMiqo8tYY.jpg”,“vote_average”:6.9},{“id”:1193501,“title”:“Whistle”,“name”:“Whistle”,“media_type”:“movie”,“release_date”:“2026-01-20”,“first_air_date”:””,“poster_path”:”/eGxPyseSnEZBMJaopGfRUO9HSYx.jpg”,“vote_average”:6.0},{“id”:1582770,“title”:“Dhurandhar: The Revenge”,“name”:“Dhurandhar: The Revenge”,“media_type”:“movie”,“release_date”:“2026-03-18”,“first_air_date”:””,“poster_path”:”/ov8vrRLZGoXHpYjSY9Vpv1tHJX7.jpg”,“vote_average”:7.6},{“id”:467905,“title”:“How to Make a Killing”,“name”:“How to Make a Killing”,“media_type”:“movie”,“release_date”:“2026-02-19”,“first_air_date”:””,“poster_path”:”/vxMeKC7o5Gi8IHMi6lUgsdprTqv.jpg”,“vote_average”:7.2},{“id”:1266127,“title”:“Ready or Not: Here I Come”,“name”:“Ready or Not: Here I Come”,“media_type”:“movie”,“release_date”:“2026-03-19”,“first_air_date”:””,“poster_path”:”/jRf89HVEtBZiSnOXXWDhZOfuTwW.jpg”,“vote_average”:7.4},{“id”:1167307,“title”:“David”,“name”:“David”,“media_type”:“movie”,“release_date”:“2025-12-14”,“first_air_date”:””,“poster_path”:”/7lFG1WrCwAxBfyGK8ahlBVzXno7.jpg”,“vote_average”:8.1},{“id”:1325734,“title”:“The Drama”,“name”:“The Drama”,“media_type”:“movie”,“release_date”:“2026-03-26”,“first_air_date”:””,“poster_path”:”/ikcNOWB6Qo1ER1H1BJL6Vf0W22s.jpg”,“vote_average”:6.2},{“id”:1119449,“title”:“Good Luck, Have Fun, Don’t Die”,“name”:“Good Luck, Have Fun, Don’t Die”,“media_type”:“movie”,“release_date”:“2026-02-13”,“first_air_date”:””,“poster_path”:”/rWcfOdY7TU6lTdazWj0ebDZnAfO.jpg”,“vote_average”:7.0}]};
+
+// ── Persistence helpers ──
+function loadStore() {
+try { return JSON.parse(localStorage.getItem(“screenlog-data”)) || {}; } catch { return {}; }
+}
+function saveStore(store) {
+localStorage.setItem(“screenlog-data”, JSON.stringify(store));
+}
+function getLastUser() {
+return localStorage.getItem(“screenlog-user”) || null;
+}
+function setLastUser(name) {
+localStorage.setItem(“screenlog-user”, name || “”);
+}
+
+// ── Components ──
+
+function StarRating({ rating, onRate, size = 15, interactive = true }) {
+const [hover, setHover] = useState(0);
+return (
+<div style={{ display: “flex”, gap: 2, cursor: interactive ? “pointer” : “default” }}>
+{[1,2,3,4,5].map(star => {
+const filled = hover ? star <= hover : star <= rating;
+return <span key={star}
+onClick={e => { e.stopPropagation(); if (interactive) onRate(star); }}
+onMouseEnter={() => interactive && setHover(star)}
+onMouseLeave={() => interactive && setHover(0)}
+style={{ fontSize: size, lineHeight: 1, color: filled ? “#F6C700” : “rgba(255,255,255,0.12)”, transition: “color 0.15s, transform 0.15s”, transform: hover === star ? “scale(1.3)” : “scale(1)”, userSelect: “none” }}>★</span>;
+})}
+</div>
+);
+}
+
+function ActionBtn({ icon, label, onClick, color }) {
+const [h, setH] = useState(false);
+return <button onClick={e => { e.stopPropagation(); onClick(); }}
+onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+style={{ background: h ? color : `${color}dd`, border: “none”, color: “#fff”, borderRadius: 6, padding: “6px 12px”, cursor: “pointer”, fontSize: 11, fontWeight: 600, fontFamily: “‘DM Sans’, sans-serif”, display: “flex”, alignItems: “center”, gap: 4, transition: “all 0.2s”, transform: h ? “scale(1.05)” : “scale(1)” }}>
+<span style={{ fontSize: 12 }}>{icon}</span>{label}
+</button>;
+}
+
+function PosterCard({ item, onAdd, onRemove, onRate, listType, animDelay = 0, hasUser }) {
+const [imgLoaded, setImgLoaded] = useState(false);
+const [hovered, setHovered] = useState(false);
+const title = item.title || item.name || “Untitled”;
+const year = (item.release_date || item.first_air_date || “”).slice(0, 4);
+const type = item.media_type === “tv” ? “TV” : “Film”;
+const poster = item.poster_path ? `${TMDB_IMG}${item.poster_path}` : null;
+
+return (
+<div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+style={{
+position: “relative”, borderRadius: 10, overflow: “hidden”, background: “#12122a”,
+transition: “transform 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s”,
+transform: hovered ? “translateY(-6px)” : “translateY(0)”,
+boxShadow: hovered ? “0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(123,47,247,0.15)” : “0 2px 8px rgba(0,0,0,0.2)”,
+display: “flex”, flexDirection: “column”, animation: `fadeSlideUp 0.45s ${animDelay}s both`,
+}}>
+<div style={{ position: “relative”, paddingTop: “150%”, background: “#0a0a1a” }}>
+{poster ? <img src={poster} alt={title} onLoad={() => setImgLoaded(true)}
+style={{ position: “absolute”, top: 0, left: 0, width: “100%”, height: “100%”, objectFit: “cover”, opacity: imgLoaded ? 1 : 0, transition: “opacity 0.5s” }} />
+: <div style={{ position: “absolute”, top: 0, left: 0, width: “100%”, height: “100%”, background: “linear-gradient(135deg, #1a1a2e, #16213e)”, display: “flex”, alignItems: “center”, justifyContent: “center”, flexDirection: “column”, gap: 8, padding: 14, textAlign: “center” }}>
+<span style={{ fontSize: 32, opacity: 0.4 }}>{type === “TV” ? “📺” : “🎬”}</span>
+<span style={{ fontFamily: “‘Playfair Display’, serif”, fontSize: 12, color: “rgba(255,255,255,0.6)”, lineHeight: 1.3 }}>{title}</span>
+</div>}
+<span style={{ position: “absolute”, top: 8, left: 8, background: type === “TV” ? “#7B2FF7” : “#E50914”, color: “#fff”, fontSize: 9, fontWeight: 700, padding: “2px 7px”, borderRadius: 4, letterSpacing: “0.1em”, textTransform: “uppercase”, fontFamily: “‘DM Sans’, sans-serif” }}>{type}</span>
+{item.vote_average > 0 && <span style={{ position: “absolute”, top: 8, right: 8, background: “rgba(0,0,0,0.7)”, backdropFilter: “blur(8px)”, color: “#F6C700”, fontSize: 11, fontWeight: 700, padding: “2px 7px”, borderRadius: 4, fontFamily: “‘DM Sans’, sans-serif” }}>★ {Number(item.vote_average).toFixed(1)}</span>}
+<div style={{ position: “absolute”, bottom: 0, left: 0, right: 0, background: “linear-gradient(transparent, rgba(0,0,0,0.92))”, padding: “36px 8px 8px”, display: “flex”, gap: 5, justifyContent: “center”, opacity: hovered ? 1 : 0, transition: “opacity 0.25s” }}>
+{listType === “search” && hasUser && <>
+<ActionBtn icon=“👁” label=“Watchlist” onClick={() => onAdd(item, “watchlist”)} color=”#7B2FF7” />
+<ActionBtn icon=“✓” label=“Watched” onClick={() => onAdd(item, “watched”)} color=”#00B894” />
+</>}
+{listType === “watchlist” && <>
+<ActionBtn icon=“✓” label=“Watched” onClick={() => onAdd(item, “watched”)} color=”#00B894” />
+<ActionBtn icon=“✕” label=“Remove” onClick={() => onRemove(item.id, “watchlist”)} color=”#E50914” />
+</>}
+{listType === “watched” && <ActionBtn icon=“✕” label=“Remove” onClick={() => onRemove(item.id, “watched”)} color=”#E50914” />}
+</div>
+</div>
+<div style={{ padding: “10px 10px 12px”, flex: 1, display: “flex”, flexDirection: “column”, gap: 3 }}>
+<div style={{ fontFamily: “‘Playfair Display’, serif”, fontSize: 13, fontWeight: 600, color: “#fff”, lineHeight: 1.3, overflow: “hidden”, textOverflow: “ellipsis”, display: “-webkit-box”, WebkitLineClamp: 2, WebkitBoxOrient: “vertical” }}>{title}</div>
+<div style={{ fontFamily: “‘DM Sans’, sans-serif”, fontSize: 11, color: “rgba(255,255,255,0.35)” }}>{year}</div>
+{listType === “watched” && <div style={{ marginTop: 4 }}><StarRating rating={item.userRating || 0} onRate={r => onRate(item.id, r)} /></div>}
+</div>
+</div>
+);
+}
+
+function Toast({ message, visible }) {
+return <div style={{ position: “fixed”, bottom: 28, left: “50%”, transform: `translateX(-50%) translateY(${visible ? 0 : 20}px)`, background: “linear-gradient(135deg, #7B2FF7 0%, #5B1FD7 100%)”, color: “#fff”, padding: “10px 26px”, borderRadius: 30, fontFamily: “‘DM Sans’, sans-serif”, fontSize: 13, fontWeight: 500, opacity: visible ? 1 : 0, transition: “all 0.3s cubic-bezier(.4,0,.2,1)”, pointerEvents: “none”, zIndex: 1000, boxShadow: “0 8px 32px rgba(123,47,247,0.35)” }}>{message}</div>;
+}
+
+function StatBlock({ label, value, suffix }) {
+return <div style={{ textAlign: “center”, minWidth: 70 }}>
+<div style={{ fontFamily: “‘Playfair Display’, serif”, fontSize: 26, fontWeight: 700, color: “#fff”, lineHeight: 1 }}>{value}{suffix && <span style={{ fontSize: 15, marginLeft: 2, color: “#F6C700” }}>{suffix}</span>}</div>
+<div style={{ fontSize: 10, color: “rgba(255,255,255,0.3)”, textTransform: “uppercase”, letterSpacing: “0.12em”, marginTop: 4, fontFamily: “‘DM Sans’, sans-serif” }}>{label}</div>
+
+  </div>;
+}
+
+function SectionRow({ title, items, onAdd, icon, hasUser }) {
+if (!items.length) return null;
+return <div style={{ marginBottom: 32 }}>
+<div style={{ display: “flex”, alignItems: “center”, gap: 8, marginBottom: 14 }}>
+<span style={{ fontSize: 18 }}>{icon}</span>
+<h2 style={{ fontFamily: “‘Playfair Display’, serif”, fontSize: 18, fontWeight: 600, margin: 0, color: “rgba(255,255,255,0.7)” }}>{title}</h2>
+</div>
+<div style={{ display: “flex”, gap: 14, overflowX: “auto”, paddingBottom: 8, scrollSnapType: “x mandatory”, WebkitOverflowScrolling: “touch” }}>
+{items.map((item, idx) => <div key={`${item.id}-${title}`} style={{ minWidth: 155, maxWidth: 155, scrollSnapAlign: “start” }}>
+<PosterCard item={item} onAdd={onAdd} onRemove={() => {}} onRate={() => {}} listType=“search” animDelay={idx * 0.04} hasUser={hasUser} />
+</div>)}
+</div>
+
+  </div>;
+}
+
+function UserModal({ onAdd, onClose }) {
+const [name, setName] = useState(””);
+const inputRef = useRef(null);
+useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
+const submit = () => { if (name.trim()) { onAdd(name.trim()); } };
+return <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: “fixed”, inset: 0, background: “rgba(0,0,0,0.7)”, zIndex: 500, display: “flex”, alignItems: “center”, justifyContent: “center”, animation: “fadeIn 0.2s”, backdropFilter: “blur(4px)” }}>
+<div style={{ background: “#14142e”, border: “1px solid rgba(123,47,247,0.3)”, borderRadius: 16, padding: 28, width: 320, maxWidth: “90vw” }}>
+<h2 style={{ fontFamily: “‘Playfair Display’, serif”, fontSize: 20, marginBottom: 16 }}>Who’s watching?</h2>
+<input ref={inputRef} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === “Enter”) submit(); }}
+placeholder=“Enter your name…”
+style={{ width: “100%”, padding: “12px 16px”, background: “rgba(255,255,255,0.06)”, border: “1px solid rgba(255,255,255,0.1)”, borderRadius: 8, color: “#fff”, fontSize: 14, fontFamily: “‘DM Sans’, sans-serif”, outline: “none”, marginBottom: 12 }} />
+<div style={{ display: “flex”, gap: 8 }}>
+<button onClick={onClose} style={{ flex: 1, padding: 10, border: “none”, borderRadius: 8, cursor: “pointer”, fontSize: 13, fontWeight: 600, fontFamily: “‘DM Sans’, sans-serif”, background: “rgba(255,255,255,0.06)”, color: “rgba(255,255,255,0.6)” }}>Cancel</button>
+<button onClick={submit} style={{ flex: 1, padding: 10, border: “none”, borderRadius: 8, cursor: “pointer”, fontSize: 13, fontWeight: 600, fontFamily: “‘DM Sans’, sans-serif”, background: “#7B2FF7”, color: “#fff” }}>Add</button>
+</div>
+</div>
+
+  </div>;
+}
+
+// ── Main App ──
+function ScreenLog() {
+const [tab, setTab] = useState(“discover”);
+const [query, setQuery] = useState(””);
+const [searchResults, setSearchResults] = useState([]);
+const [trending, setTrending] = useState([]);
+const [nowPlaying, setNowPlaying] = useState([]);
+const [onTheAir, setOnTheAir] = useState([]);
+const [upcoming, setUpcoming] = useState([]);
+const [loading, setLoading] = useState(false);
+const [toast, setToast] = useState({ msg: “”, show: false });
+const [store, setStoreState] = useState(loadStore);
+const [currentUser, setCurrentUserState] = useState(getLastUser);
+const [showModal, setShowModal] = useState(false);
+const searchTimeout = useRef(null);
+
+const users = Object.keys(store);
+const userData = currentUser && store[currentUser] ? store[currentUser] : { watchlist: [], watched: [] };
+
+function updateStore(fn) {
+setStoreState(prev => { const next = { …prev }; fn(next); saveStore(next); return next; });
+}
+function switchUser(name) { setCurrentUserState(name); setLastUser(name); }
+function addUser(name) {
+if (store[name]) { switchUser(name); setShowModal(false); return; }
+updateStore(s => { s[name] = { watchlist: [], watched: [] }; });
+switchUser(name); setShowModal(false);
+}
+function removeUser(name) {
+if (!confirm(`Remove ${name} and all their data?`)) return;
+updateStore(s => { delete s[name]; });
+if (currentUser === name) { const remaining = Object.keys(store).filter(u => u !== name); switchUser(remaining[0] || null); }
+}
+
+// Fetch discover data
+useEffect(() => {
+async function load() {
+try {
+const [t, np, ota, up] = await Promise.all([
+fetch(tmdb(”/trending/all/day”)).then(r => r.ok ? r.json() : { results: [] }),
+fetch(tmdb(”/movie/now_playing”)).then(r => r.ok ? r.json() : { results: [] }),
+fetch(tmdb(”/tv/on_the_air”)).then(r => r.ok ? r.json() : { results: [] }),
+fetch(tmdb(”/movie/upcoming”)).then(r => r.ok ? r.json() : { results: [] }),
+]);
+const tr = (t.results || []).filter(r => r.media_type !== “person”).slice(0, 20);
+const np2 = (np.results || []).map(r => ({ …r, media_type: “movie” })).slice(0, 20);
+const ota2 = (ota.results || []).map(r => ({ …r, media_type: “tv” })).slice(0, 20);
+const up2 = (up.results || []).map(r => ({ …r, media_type: “movie” })).slice(0, 15);
+setTrending(tr.length ? tr : FALLBACK.trending || []);
+setNowPlaying(np2.length ? np2 : FALLBACK.now_playing || []);
+setOnTheAir(ota2.length ? ota2 : FALLBACK.on_the_air || []);
+setUpcoming(up2.length ? up2 : FALLBACK.upcoming || []);
+} catch {
+setTrending(FALLBACK.trending || []);
+setNowPlaying(FALLBACK.now_playing || []);
+setOnTheAir(FALLBACK.on_the_air || []);
+setUpcoming(FALLBACK.upcoming || []);
+}
+}
+load();
+}, []);
+
+const showToast = msg => { setToast({ msg, show: true }); setTimeout(() => setToast({ msg: “”, show: false }), 2200); };
+
+const doSearch = useCallback(async q => {
+if (!q.trim()) { setSearchResults([]); setLoading(false); return; }
+setLoading(true);
+try {
+const r = await fetch(tmdb(”/search/multi”, `&query=${encodeURIComponent(q)}`));
+if (!r.ok) throw new Error();
+const d = await r.json();
+setSearchResults((d.results || []).filter(r => r.media_type !== “person”).slice(0, 24));
+} catch {
+const lower = q.toLowerCase();
+const all = […(FALLBACK.trending||[]),…(FALLBACK.now_playing||[]),…(FALLBACK.on_the_air||[]),…(FALLBACK.upcoming||[])];
+const seen = new Set();
+setSearchResults(all.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return (i.title||i.name||””).toLowerCase().includes(lower); }).slice(0, 24));
+}
+setLoading(false);
+}, []);
+
+const handleSearch = val => {
+setQuery(val);
+clearTimeout(searchTimeout.current);
+searchTimeout.current = setTimeout(() => doSearch(val), 400);
+};
+
+const addTo = (item, list) => {
+if (!currentUser) { showToast(“Add a user first”); return; }
+updateStore(s => {
+const data = s[currentUser] || (s[currentUser] = { watchlist: [], watched: [] });
+const target = list === “watchlist” ? data.watchlist : data.watched;
+if (target.find(i => i.id === item.id)) return;
+const entry = { id: item.id, title: item.title || item.name, name: item.name || item.title, media_type: item.media_type, release_date: item.release_date || “”, first_air_date: item.first_air_date || “”, poster_path: item.poster_path, vote_average: item.vote_average, userRating: 0, addedAt: Date.now() };
+if (list === “watchlist”) { data.watched = data.watched.filter(i => i.id !== item.id); data.watchlist = [entry, …data.watchlist]; }
+else { data.watchlist = data.watchlist.filter(i => i.id !== item.id); data.watched = [entry, …data.watched]; }
+});
+showToast(list === “watchlist” ? “Added to Watchlist ✓” : “Added to Watched ✓”);
+};
+
+const removeFrom = (id, list) => {
+updateStore(s => {
+const data = s[currentUser]; if (!data) return;
+if (list === “watchlist”) data.watchlist = data.watchlist.filter(i => i.id !== id);
+else data.watched = data.watched.filter(i => i.id !== id);
+});
+showToast(“Removed”);
+};
+
+const rateItem = (id, rating) => {
+updateStore(s => {
+const data = s[currentUser]; if (!data) return;
+data.watched = data.watched.map(i => i.id === id ? { …i, userRating: rating } : i);
+});
+showToast(`Rated ${rating} star${rating !== 1 ? "s" : ""} ★`);
+};
+
+const tabs = [
+{ id: “discover”, label: “Discover”, count: null },
+{ id: “watchlist”, label: “Watchlist”, count: userData.watchlist.length },
+{ id: “watched”, label: “Watched”, count: userData.watched.length },
+];
+
+const ratedItems = userData.watched.filter(i => i.userRating > 0);
+const avgRating = ratedItems.length ? (ratedItems.reduce((s, i) => s + i.userRating, 0) / ratedItems.length).toFixed(1) : “—”;
+
+return (
+<div style={{ minHeight: “100vh”, background: “#08081a”, fontFamily: “‘DM Sans’, sans-serif”, color: “#fff”, position: “relative” }}>
+{/* Ambient */}
+<div style={{ position: “fixed”, inset: 0, zIndex: 0, pointerEvents: “none”, background: “radial-gradient(ellipse at 15% 5%, rgba(123,47,247,0.07) 0%, transparent 55%), radial-gradient(ellipse at 85% 95%, rgba(229,9,20,0.04) 0%, transparent 55%)” }} />
+
+```
+  <div style={{ position: "relative", zIndex: 1, maxWidth: 1080, margin: "0 auto", padding: "0 16px" }}>
+    {/* Header */}
+    <header style={{ paddingTop: 36, paddingBottom: 8, textAlign: "center" }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 900, margin: 0, background: "linear-gradient(135deg, #ffffff 0%, #b8b8d0 40%, #7B2FF7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>ScreenLog</h1>
+      <p style={{ fontSize: 12, color: "rgba(255,255,255,0.28)", marginTop: 6, fontWeight: 300, letterSpacing: "0.2em", textTransform: "uppercase" }}>Track · Rate · Remember</p>
+    </header>
+
+    {/* User bar */}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 6, flexWrap: "wrap", padding: "8px 0" }}>
+      {users.map(name => (
+        <button key={name} onClick={() => switchUser(name)}
+          style={{ background: name === currentUser ? "rgba(123,47,247,0.2)" : "rgba(255,255,255,0.06)", border: `1px solid ${name === currentUser ? "rgba(123,47,247,0.5)" : "rgba(255,255,255,0.08)"}`, color: name === currentUser ? "#fff" : "rgba(255,255,255,0.5)", padding: "5px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}>
+          {name}
+        </button>
+      ))}
+      <button onClick={() => setShowModal(true)}
+        style={{ background: "transparent", border: "1px dashed rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.35)", padding: "5px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}>
+        + Add
+      </button>
+    </div>
+
+    {currentUser && <div style={{ textAlign: "center", marginBottom: 12 }}>
+      <button onClick={() => removeUser(currentUser)} style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>remove {currentUser}</button>
+    </div>}
+    {!currentUser && <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.25)", marginBottom: 16 }}>{users.length ? "Select a user above" : "Tap + Add to get started"}</p>}
+
+    {/* Tabs */}
+    <nav style={{ display: "flex", justifyContent: "center", gap: 3, marginBottom: 22, flexWrap: "wrap" }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => setTab(t.id)}
+          style={{ background: tab === t.id ? "rgba(123,47,247,0.18)" : "transparent", border: tab === t.id ? "1px solid rgba(123,47,247,0.35)" : "1px solid transparent", color: tab === t.id ? "#fff" : "rgba(255,255,255,0.4)", padding: "7px 18px", borderRadius: 24, cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}>
+          {t.label}
+          {t.count !== null && <span style={{ marginLeft: 6, background: tab === t.id ? "rgba(123,47,247,0.3)" : "rgba(255,255,255,0.08)", padding: "1px 7px", borderRadius: 10, fontSize: 11 }}>{t.count}</span>}
+        </button>
+      ))}
+    </nav>
+
+    {/* DISCOVER */}
+    {tab === "discover" && <div>
+      <div style={{ maxWidth: 500, margin: "0 auto 28px", position: "relative" }}>
+        <input value={query} onChange={e => handleSearch(e.target.value)}
+          placeholder="Search any movie or TV show..."
+          style={{ width: "100%", padding: "13px 18px 13px 44px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, color: "#fff", fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: "none", transition: "border-color 0.2s" }}
+          onFocus={e => e.target.style.borderColor = "rgba(123,47,247,0.4)"}
+          onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+        <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, opacity: 0.3, pointerEvents: "none" }}>⌕</span>
+        {loading && <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "rgba(123,47,247,0.6)" }}><span style={{ display: "inline-block", animation: "pulse 1.2s infinite" }}>●</span> searching...</span>}
+      </div>
+      {query ? <div>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 600, margin: "0 0 16px", color: "rgba(255,255,255,0.6)" }}>Results for "{query}"</h2>
+        {searchResults.length > 0 ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 16, paddingBottom: 40 }}>
+          {searchResults.map((item, idx) => <PosterCard key={`s-${item.id}`} item={item} onAdd={addTo} onRemove={() => {}} onRate={() => {}} listType="search" animDelay={idx * 0.035} hasUser={!!currentUser} />)}
+        </div> : !loading && <div style={{ textAlign: "center", padding: "60px 20px", color: "rgba(255,255,255,0.2)" }}><div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>🔍</div><p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16 }}>No results found</p></div>}
+      </div> : <div>
+        <SectionRow title="Trending Today" items={trending} onAdd={addTo} icon="🔥" hasUser={!!currentUser} />
+        <SectionRow title="In Theaters Now" items={nowPlaying} onAdd={addTo} icon="🎬" hasUser={!!currentUser} />
+        <SectionRow title="New TV This Week" items={onTheAir} onAdd={addTo} icon="📺" hasUser={!!currentUser} />
+        <SectionRow title="Coming Soon" items={upcoming} onAdd={addTo} icon="🗓" hasUser={!!currentUser} />
+        {!trending.length && <div style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.2)" }}><span style={{ animation: "pulse 1.5s infinite", fontSize: 14 }}>Loading fresh data from TMDB...</span></div>}
+      </div>}
+    </div>}
+
+    {/* WATCHLIST */}
+    {tab === "watchlist" && (userData.watchlist.length > 0
+      ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 16, paddingBottom: 60 }}>
+          {userData.watchlist.map((item, idx) => <PosterCard key={item.id} item={item} onAdd={addTo} onRemove={removeFrom} onRate={rateItem} listType="watchlist" animDelay={idx * 0.035} hasUser={true} />)}
+        </div>
+      : <div style={{ textAlign: "center", padding: "70px 20px", color: "rgba(255,255,255,0.2)" }}><div style={{ fontSize: 44, marginBottom: 14, opacity: 0.35 }}>👁</div><p style={{ fontFamily: "'Playfair Display', serif", fontSize: 17 }}>{currentUser ? "Your watchlist is empty" : "Select a user first"}</p><p style={{ fontSize: 12, marginTop: 8, opacity: 0.5 }}>Head to Discover to find something great</p></div>
+    )}
+
+    {/* WATCHED */}
+    {tab === "watched" && <div>
+      {userData.watched.length > 0 && <div style={{ display: "flex", justifyContent: "center", gap: 28, marginBottom: 24, padding: "14px 20px", background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.04)", flexWrap: "wrap" }}>
+        <StatBlock label="Watched" value={userData.watched.length} />
+        <StatBlock label="Rated" value={ratedItems.length} />
+        <StatBlock label="Avg Rating" value={avgRating} suffix="★" />
+      </div>}
+      {userData.watched.length > 0
+        ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: 16, paddingBottom: 60 }}>
+            {userData.watched.map((item, idx) => <PosterCard key={item.id} item={item} onAdd={addTo} onRemove={removeFrom} onRate={rateItem} listType="watched" animDelay={idx * 0.035} hasUser={true} />)}
+          </div>
+        : <div style={{ textAlign: "center", padding: "70px 20px", color: "rgba(255,255,255,0.2)" }}><div style={{ fontSize: 44, marginBottom: 14, opacity: 0.35 }}>✓</div><p style={{ fontFamily: "'Playfair Display', serif", fontSize: 17 }}>{currentUser ? "Nothing watched yet" : "Select a user first"}</p><p style={{ fontSize: 12, marginTop: 8, opacity: 0.5 }}>Head to Discover to find something great</p></div>
+      }
+    </div>}
+
+    <div style={{ textAlign: "center", padding: "40px 0 24px", fontSize: 10, color: "rgba(255,255,255,0.12)", fontFamily: "'DM Sans', sans-serif" }}>
+      Data from TMDB · This product uses the TMDB API but is not endorsed or certified by TMDB.
+    </div>
+  </div>
+
+  <Toast message={toast.msg} visible={toast.show} />
+  {showModal && <UserModal onAdd={addUser} onClose={() => setShowModal(false)} />}
+</div>
+```
+
+);
+}
+
+ReactDOM.createRoot(document.getElementById(“root”)).render(<ScreenLog />);
+</script>
+
+</body>
+</html>
